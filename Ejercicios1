@@ -1,0 +1,65 @@
+-- Obtener el número de tupla sin un orden en particular --
+
+SELECT ROW_NUMBER() OVER(ORDER BY no_guia) AS row_id, *
+FROM trafico_guia;
+
+
+-- Obtener el número de tupla cuando ordenamos por fecha de incorporacion --
+SELECT ROW_NUMBER() OVER(ORDER BY fecha_guia) AS row_id, *
+FROM trafico_guia;
+
+-- Obtener el valor de un atributo de la primera tupla del window frame actual (global por default) --
+SELECT FIRST_VALUE(email_cliente) OVER(ORDER BY id_sucursal) AS row_email, *
+FROM email_cliente;
+SELECT * FROM email_cliente
+
+-- Obtener el valor de un atributo de la primera tupla del window frame actual --
+-- La colegiatura de la persona que se inscribió primero por carrera --
+SELECT FIRST_VALUE(email_cliente) OVER(PARTITION BY id_sucursal ORDER BY id) AS row_id, *
+FROM email_cliente;
+
+-- Obtener el valor de un atributo de la ultima tupla del window frame actual --
+-- La colegiatura de la persona que se inscribió al final por carrera --
+SELECT LAST_VALUE(fecha_acceso) OVER(PARTITION BY id_usuario ORDER BY fecha_modifpassw) AS row_id, *
+FROM seguridad_usuarios;
+
+-- Obtener el valor de un atributo de la tupla numero n = 3 del window frame actual --
+-- La colegiatura de la persona que se inscribió en lugar 3 por carrera --
+SELECT nth_value(fecha_acceso, 3) OVER(PARTITION BY id_usuario ORDER BY fecha_modifpassw) AS row_id, *
+FROM seguridad_usuarios;
+
+WITH cte AS (
+    SELECT *,
+        ROW_NUMBER() OVER(PARTITION BY id_usuario ORDER BY fecha_modifpassw) AS row_id
+    FROM seguridad_usuarios
+)
+SELECT t.*, cte2.fecha_acceso AS third_value
+FROM cte t
+OUTER APPLY (
+    SELECT TOP 1 *
+    FROM cte t2
+    WHERE t2.id_usuario = t.id_usuario
+    ORDER BY t2.fecha_modifpassw
+    OFFSET 2 ROWS
+) cte2;
+
+
+-- Rank Simple: Por cada elemento cuenta 1 generando espacios en el rank --
+SELECT 	*,
+		RANK() OVER (PARTITION BY id_usuario ORDER BY id_grupo DESC) AS brand_rank
+FROM	seguridad_usuarios
+ORDER BY id_area, brand_rank;
+
+-- Rank Simple: Por cada grupo de lementos iguales cuenta 1 generando rank "denso" --
+SELECT 	*,
+		DENSE_RANK() OVER (PARTITION BY id_destinatario ORDER BY no_viaje DESC) AS brand_rank
+FROM	trafico_guia
+ORDER BY no_guia, brand_rank;
+
+SELECT * FROM trafico_guia
+
+-- Percent Rank: Genera una distribución percentual siguiendo la fórmula (rank - 1) / (total rows - 1) --
+SELECT 	*,
+		PERCENT_RANK() OVER (PARTITION BY id_destinatario ORDER BY no_viaje ASC) AS brand_rank
+FROM	trafico_guia
+ORDER BY no_guia, brand_rank;
